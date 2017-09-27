@@ -9,9 +9,10 @@ import psycopg2
 # checking for path whose status is OK
 # Runs quick!
 articleSQL = """
-    SELECT title, num FROM articles,
-    (SELECT path,
-        count(*) as num FROM log
+    SELECT title, num
+    FROM articles,
+        (SELECT path, count(*) as num
+        FROM log
         WHERE status = '200 OK'
         GROUP BY path) as agglog
     WHERE slug=SUBSTR(path,10,length(slug))
@@ -23,11 +24,13 @@ articleSQL = """
 # Outer select  joins the author name and count using slug and path
 # Runs quick!
 authorSQL = """
-    SELECT name, sum(num) as total FROM
-    (SELECT slug, name
+    SELECT name, sum(num) as total
+    FROM
+        (SELECT slug, name
         FROM articles, authors
         WHERE articles.author = authors.id) as sluginfo,
-    (SELECT path, count(*) as num
+
+        (SELECT path, count(*) as num
         FROM log
         WHERE status = '200 OK'
         GROUP BY path) as loginfo
@@ -43,10 +46,14 @@ authorSQL = """
 #   convert in loganalysis.py python rather than DB as is done here
 errorSQL = """
     SELECT to_char(tot.date,'FMMonth FMDD, YYYY') as date,
-    round(err.num*100/tot.num::numeric,2) as percent FROM
-    (SELECT date(time) as date, count(*) as num FROM log
+    round(err.num*100/tot.num::numeric,2) as percent
+    FROM
+        (SELECT date(time) as date, count(*) as num
+        FROM log
         GROUP BY date(time)) as tot,
-    (SELECT date(time) as date, count(*) as num FROM log
+
+        (SELECT date(time) as date, count(*) as num
+        FROM log
         WHERE status != '200 OK'
         GROUP BY date(time)) as err
     WHERE tot.date = err.date AND err.num*100/tot.num > 1.0
